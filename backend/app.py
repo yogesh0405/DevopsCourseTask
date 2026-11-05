@@ -1,4 +1,6 @@
+import json
 from itertools import count
+from pathlib import Path
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -6,8 +8,16 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
 
+API_RESPONSE_FILE = Path(__file__).with_name("api.json")
+
 todos = []
 next_id = count(1)
+
+
+@app.get("/api")
+def api_status():
+    with API_RESPONSE_FILE.open(encoding="utf-8") as response_file:
+        return jsonify(json.load(response_file))
 
 
 @app.get("/api/todos")
