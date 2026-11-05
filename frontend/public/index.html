@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My To-Do List</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="todo-app">
+      <h1>My To-Do List</h1>
+      <form id="todo-form">
+        <label class="visually-hidden" for="todo-title">New task</label>
+        <input id="todo-title" name="title" placeholder="Add a task..." required>
+        <button type="submit">Add</button>
+      </form>
+      <p id="message" role="status"></p>
+      <ul id="todo-list"></ul>
+    </main>
+  </body>
+</html>
