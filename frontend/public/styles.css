@@ -24,17 +24,26 @@ h1 {
 }
 
 #todo-form {
-  display: flex;
+  display: grid;
   gap: 0.5rem;
 }
 
-input {
+input,
+textarea {
   min-width: 0;
-  flex: 1;
   padding: 0.7rem;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   font: inherit;
+}
+
+textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+#todo-form button {
+  justify-self: start;
 }
 
 button {
@@ -71,6 +80,16 @@ button:hover {
 .task-title.completed {
   color: #6b7280;
   text-decoration: line-through;
+}
+
+.task-content {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.task-description {
+  margin: 0;
+  color: #4b5563;
 }
 
 .task-actions {

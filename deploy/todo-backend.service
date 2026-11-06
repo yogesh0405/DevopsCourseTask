@@ -1,0 +1,15 @@
+[Unit]
+Description=To-Do Flask API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/CI_Cd/backend
+EnvironmentFile=/home/ubuntu/CI_Cd/.env
+ExecStart=/home/ubuntu/CI_Cd/backend/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:5000 app:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

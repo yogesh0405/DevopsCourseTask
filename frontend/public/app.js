@@ -1,6 +1,7 @@
-const API_URL = "http://localhost:5000/api/todos";
+const API_URL = "/api/todos";
 const form = document.querySelector("#todo-form");
 const titleInput = document.querySelector("#todo-title");
+const descriptionInput = document.querySelector("#todo-description");
 const todoList = document.querySelector("#todo-list");
 const message = document.querySelector("#message");
 
@@ -28,6 +29,11 @@ function renderTodos(todos) {
     const title = document.createElement("span");
     title.className = `task-title${todo.completed ? " completed" : ""}`;
     title.textContent = todo.title;
+    const taskContent = document.createElement("div");
+    taskContent.className = "task-content";
+    const description = document.createElement("p");
+    description.className = "task-description";
+    description.textContent = todo.description;
 
     const actions = document.createElement("span");
     actions.className = "task-actions";
@@ -44,7 +50,8 @@ function renderTodos(todos) {
     deleteButton.addEventListener("click", () => removeTodo(todo.id));
 
     actions.append(toggleButton, deleteButton);
-    item.append(title, actions);
+    taskContent.append(title, description);
+    item.append(taskContent, actions);
     todoList.append(item);
   });
 }
@@ -81,17 +88,17 @@ async function removeTodo(id) {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const title = titleInput.value.trim();
-  if (!title) return;
+  const description = descriptionInput.value.trim();
+  if (!title || !description) return;
 
   try {
     message.textContent = "";
     await requestTodos(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ itemName: title, itemDescription: description }),
     });
-    titleInput.value = "";
-    await loadTodos();
+    window.location.assign("/success.html");
   } catch (error) {
     message.textContent = error.message;
   }

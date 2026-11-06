@@ -3,13 +3,16 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-    ports:
-      - "5000:5000"
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-}
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-todo_app}
 
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    environment:
+      BACKEND_URL: http://backend:5000
     ports:
       - "3000:3000"
     depends_on:

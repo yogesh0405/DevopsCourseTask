@@ -1,0 +1,18 @@
+[Unit]
+Description=To-Do Express Frontend
+After=network.target todo-backend.service
+Wants=todo-backend.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/CI_Cd/frontend
+Environment=PORT=3000
+Environment=HOST=127.0.0.1
+Environment=BACKEND_URL=http://127.0.0.1:5000
+ExecStart=/usr/bin/node /home/ubuntu/CI_Cd/frontend/server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,59 +1,114 @@
-import json
-from itertools import count
-from pathlib import Path
+import os
 
-from flask import Flask, jsonify, request
+from bson import ObjectId
+from flask import Flask, current_app, jsonify, request
 from flask_cors import CORS
+from pymongo import MongoClient, ReturnDocument
+from pymongo.collection import Collection
+from pymongo.errors import PyMongoError
+from pymongo.server_api import ServerApi
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+CORS(app, resources={r"/api(?:/.*)?": {"origins": "http://localhost:3000"}})
 
-API_RESPONSE_FILE = Path(__file__).with_name("api.json")
+mongo_client: MongoClient | None = None
 
-todos = []
-next_id = count(1)
+
+class DatabaseConfigurationError(Exception):
+    pass
+
+
+def get_todos_collection() -> Collection:
+    global mongo_client
+    uri = os.environ.get("MONGODB_URI")
+    if not uri:
+        raise DatabaseConfigurationError("MONGODB_URI is not configured.")
+
+    if mongo_client is None:
+        mongo_client = MongoClient(
+            uri,
+            server_api=ServerApi("1"),
+            serverSelectionTimeoutMS=5000,
+        )
+
+    database_name = os.environ.get("MONGODB_DATABASE", "todo_app")
+    return mongo_client[database_name]["todos"]
+
+
+def serialize_todo(todo: dict) -> dict:
+    return {
+        "id": str(todo["_id"]),
+        "title": todo["title"],
+        "description": todo["description"],
+        "completed": todo["completed"],
+    }
+
+
+@app.errorhandler(DatabaseConfigurationError)
+@app.errorhandler(PyMongoError)
+def handle_database_error(error):
+    current_app.logger.error("MongoDB request failed: %s", error)
+    return jsonify({
+        "error": "MongoDB is unavailable. Check MONGODB_URI and Atlas network access."
+    }), 503
 
 
 @app.get("/api")
-def api_status():
-    with API_RESPONSE_FILE.open(encoding="utf-8") as response_file:
-        return jsonify(json.load(response_file))
-
-
 @app.get("/api/todos")
 def list_todos():
-    return jsonify(todos)
+    todos = get_todos_collection().find().sort("_id", 1)
+    return jsonify([serialize_todo(todo) for todo in todos])
 
 
 @app.post("/api/todos")
 def create_todo():
     data = request.get_json(silent=True) or {}
-    title = data.get("title")
+    title = data.get("itemName", data.get("title"))
+    description = data.get("itemDescription", data.get("description"))
     if not isinstance(title, str) or not title.strip():
-        return jsonify({"error": "A task title is required."}), 400
+        return jsonify({"error": "An item name is required."}), 400
+    if not isinstance(description, str) or not description.strip():
+        return jsonify({"error": "An item description is required."}), 400
 
-    todo = {"id": next(next_id), "title": title.strip(), "completed": False}
-    todos.append(todo)
-    return jsonify(todo), 201
+    todo = {
+        "title": title.strip(),
+        "description": description.strip(),
+        "completed": False,
+    }
+    result = get_todos_collection().insert_one(todo)
+    todo["_id"] = result.inserted_id
+    return jsonify(serialize_todo(todo)), 201
 
 
-@app.patch("/api/todos/<int:todo_id>")
+@app.patch("/api/todos/<todo_id>")
 def toggle_todo(todo_id):
-    todo = next((item for item in todos if item["id"] == todo_id), None)
+    if not ObjectId.is_valid(todo_id):
+        return jsonify({"error": "Task not found."}), 404
+
+    collection = get_todos_collection()
+    todo = collection.find_one({"_id": ObjectId(todo_id)})
     if todo is None:
         return jsonify({"error": "Task not found."}), 404
 
-    todo["completed"] = not todo["completed"]
-    return jsonify(todo)
+    updated = collection.find_one_and_update(
+        {"_id": ObjectId(todo_id)},
+        {"$set": {"completed": not todo["completed"]}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if updated is None:
+        return jsonify({"error": "Task not found."}), 404
+    return jsonify(serialize_todo(updated))
 
 
-@app.delete("/api/todos/<int:todo_id>")
+@app.delete("/api/todos/<todo_id>")
 def delete_todo(todo_id):
-    todo = next((item for item in todos if item["id"] == todo_id), None)
-    if todo is None:
+    if not ObjectId.is_valid(todo_id):
         return jsonify({"error": "Task not found."}), 404
 
-    todos.remove(todo)
+    result = get_todos_collection().delete_one({"_id": ObjectId(todo_id)})
+    if result.deleted_count == 0:
+        return jsonify({"error": "Task not found."}), 404
+
     return "", 204
 
 
