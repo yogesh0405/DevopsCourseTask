@@ -28,7 +28,9 @@ current to-do items.
 
    `.env` is ignored by Git; do not commit Atlas credentials.
 
-For a local backend started outside Docker, export the settings before running
+When started outside Docker, the backend automatically loads `MONGODB_URI` and
+`MONGODB_DATABASE` from the project-root `.env` file. Explicit environment
+variables take precedence. Alternatively, export the settings before running
 Flask:
 
 ```bash

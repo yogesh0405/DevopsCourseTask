@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 import os
+from pathlib import Path
 
 from bson import ObjectId
+from dotenv import load_dotenv
 from flask import Flask, current_app, jsonify, request
 from flask_cors import CORS
 from pymongo import MongoClient, ReturnDocument
 from pymongo.collection import Collection
 from pymongo.errors import PyMongoError
 from pymongo.server_api import ServerApi
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 app = Flask(__name__)
 CORS(app, resources={r"/api(?:/.*)?": {"origins": "http://localhost:3000"}})
